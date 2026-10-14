@@ -1,27 +1,28 @@
+
 name: Uni
 version: '1.0.0'
 main: ru.rosbiotech.schedule.UniversitySchedulePlugin
 api-version: '1.21'
 author: OpenAI
-description: University timetable
+description: University timetable with GUI
 
 commands:
   day:
-    description: Show timetable for a date
+    description: Open timetable for a date
     aliases: [d]
-    usage: "/day <now|tomorrow|yyyy-MM-dd>"
+    usage: "/uni:day <today|tomorrow|yyyy-MM-dd>"
     permission: universityschedule.use
 
   week:
-    description: Show a semester week
+    description: Open weekly timetable
     aliases: [w]
-    usage: "/week <this|next|prev|number>"
+    usage: "/uni:week <this|next|prev|number>"
     permission: universityschedule.use
 
   changes:
-    description: Show recent timetable changes
+    description: Show recent timetable changes in chat
     aliases: [c]
-    usage: "/changes"
+    usage: "/uni:changes"
     permission: universityschedule.use
 
 permissions:
