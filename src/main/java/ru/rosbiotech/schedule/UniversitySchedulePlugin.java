@@ -38,7 +38,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-
 public final class UniversitySchedulePlugin extends JavaPlugin {
 
   private static final DateTimeFormatter DATE_FORMAT =
@@ -478,22 +477,15 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
         lesson.start.format(TIME_FORMAT) + "–" + lesson.end.format(TIME_FORMAT),
         timeBackground ? NamedTextColor.WHITE : color);
 
-    if (timeBackground) {
-      time = time.color(NamedTextColor.WHITE).backgroundColor(color);
-    }
-
     Component line = time.append(Component.space())
                          .append(Component.text(lesson.subject, color));
 
     if (lesson.replacement) {
       Component tag =
-          Component.text(" ЗАМЕНА ", NamedTextColor.WHITE,
-                         net.kyori.adventure.text.format.TextDecoration.BOLD);
+          Component.text(" [ЗАМЕНА]", NamedTextColor.RED)
+              .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD);
 
-      if (replacementBackground) {
-        tag = tag.backgroundColor(TextColor.color(0xB71C1C));
-      }
-      line = line.append(Component.space()).append(tag);
+      line = line.append(tag);
     }
 
     sender.sendMessage(line);
