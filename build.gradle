@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+}
+
+group = 'ru.rosbiotech'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://repo.purpurmc.org/snapshots'
+    }
+}
+
+dependencies {
+    compileOnly 'org.purpurmc.purpur:purpur-api:26.3.build.+'
+    implementation 'com.google.code.gson:gson:2.13.1'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+tasks.jar {
+    archiveBaseName = 'UniversitySchedule'
+    archiveVersion = project.version
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
