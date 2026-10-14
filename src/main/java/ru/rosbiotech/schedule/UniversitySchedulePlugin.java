@@ -321,16 +321,21 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
       }
 
       LocalDate date;
-      if (args[0].equalsIgnoreCase("now")) {
-        date = LocalDate.now(zone);
-      } else {
+      String argument = args[0].toLowerCase(Locale.ROOT);
+
+      switch (argument) {
+      case "now", "today" -> date = LocalDate.now(zone);
+      case "tomorrow" -> date = LocalDate.now(zone).plusDays(1);
+      default -> {
         try {
           date = LocalDate.parse(args[0]);
         } catch (DateTimeParseException e) {
-          sender.sendMessage(Component.text(
-              "Дата должна быть в формате yyyy-MM-dd.", NamedTextColor.RED));
+          sender.sendMessage(
+              Component.text("Использование: /day <now|tomorrow|yyyy-MM-dd>",
+                             NamedTextColor.RED));
           return true;
         }
+      }
       }
 
       showDay(sender, date);
@@ -427,9 +432,14 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
       return;
     }
 
-    LocalDate start = semesterStart.plusWeeks(number - 1L);
-    LocalDate end = start.plusDays(6);
-    LocalDate actualEnd = end.isAfter(semesterEnd) ? semesterEnd : end;
+    LocalDate weekMonday = semesterFirstMonday().plusWeeks(number - 1L);
+    LocalDate weekSunday = weekMonday.plusDays(6);
+
+    LocalDate start =
+        weekMonday.isBefore(semesterStart) ? semesterStart : weekMonday;
+
+    LocalDate actualEnd =
+        weekSunday.isAfter(semesterEnd) ? semesterEnd : weekSunday;
 
     sender.sendMessage(Component.text("Неделя " + number + " (" +
                                           start.format(DATE_FORMAT) + " – " +
@@ -499,31 +509,33 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
         Component.text("  Аудитория: " + lesson.room, NamedTextColor.GRAY));
   }
 
+  private LocalDate semesterFirstMonday() {
+    return semesterStart.with(
+        java.time.temporal.TemporalAdjusters.previousOrSame(
+            java.time.DayOfWeek.MONDAY));
+  }
+
+  private LocalDate semesterLastMonday() {
+    return semesterEnd.with(java.time.temporal.TemporalAdjusters.previousOrSame(
+        java.time.DayOfWeek.MONDAY));
+  }
+
   private int weekNumber(LocalDate date) {
     if (date.isBefore(semesterStart) || date.isAfter(semesterEnd)) {
       return -1;
     }
-    return (int)(ChronoUnit.WEEKS.between(
-                     semesterStart,
-                     date.with(
-                         java.time.temporal.TemporalAdjusters.previousOrSame(
-                             java.time.DayOfWeek.MONDAY))) -
-                 ChronoUnit.WEEKS.between(
-                     semesterStart,
-                     semesterStart.with(
-                         java.time.temporal.TemporalAdjusters.previousOrSame(
-                             java.time.DayOfWeek.MONDAY)))) +
-        1;
+
+    LocalDate dateMonday =
+        date.with(java.time.temporal.TemporalAdjusters.previousOrSame(
+            java.time.DayOfWeek.MONDAY));
+
+    return (int)ChronoUnit.WEEKS.between(semesterFirstMonday(), dateMonday) + 1;
   }
 
   private int totalWeeks() {
-    LocalDate firstMonday =
-        semesterStart.with(java.time.temporal.TemporalAdjusters.previousOrSame(
-            java.time.DayOfWeek.MONDAY));
-    LocalDate lastMonday =
-        semesterEnd.with(java.time.temporal.TemporalAdjusters.previousOrSame(
-            java.time.DayOfWeek.MONDAY));
-    return (int)ChronoUnit.WEEKS.between(firstMonday, lastMonday) + 1;
+    return (int)ChronoUnit.WEEKS.between(semesterFirstMonday(),
+                                         semesterLastMonday()) +
+        1;
   }
 
   private static TextColor parseColor(String raw, TextColor fallback) {

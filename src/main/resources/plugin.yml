@@ -8,7 +8,7 @@ description: University timetable with change notifications
 commands:
   day:
     description: Show timetable for a date
-    usage: "/day <now|yyyy-MM-dd>"
+    usage: "/day <now|tomorrow|yyyy-MM-dd>"
     permission: universityschedule.use
 
   week:
