@@ -1,0 +1,28 @@
+api:
+  url: "https://dekanat.rosbiotech.ru/api/Rasp?idGroup=%group%"
+  group-id: 18513
+  refresh-interval-seconds: 300
+  request-timeout-seconds: 15
+
+semester:
+  start-date: "2026-09-01"
+  end-date: "2027-01-25"
+  week-start: MONDAY
+
+notifications:
+  enabled: true
+  notify-on-first-load: false
+  notify-on-changes: true
+  max-history: 50
+
+display:
+  timezone: "Europe/Moscow"
+  use-full-teacher-name: false
+  max-lessons-per-day: 12
+  use-api-colors: true
+  time-background: true
+  replacement-background: true
+  default-color: "#607D8B"
+  text-color: "#FFFFFF"
+
+debug: false
