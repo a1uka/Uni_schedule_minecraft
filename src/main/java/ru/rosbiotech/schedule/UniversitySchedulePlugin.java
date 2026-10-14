@@ -53,19 +53,45 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
 
     switch (command.getName().toLowerCase(Locale.ROOT)) {
     case "day" -> {
-      suggestions.add("now");
       suggestions.add("today");
       suggestions.add("tomorrow");
+
+      LocalDate today = LocalDate.now(zone);
+
+      for (int i = 0; i <= 7; i++) {
+        LocalDate date = today.plusDays(i);
+
+        if (!date.isBefore(semesterStart) && !date.isAfter(semesterEnd)) {
+          suggestions.add(date.toString());
+        }
+      }
     }
+
     case "week" -> {
       suggestions.add("this");
+
+      int currentWeek = weekNumber(LocalDate.now(zone));
+      int total = totalWeeks();
+
+      if (currentWeek >= 1 && currentWeek <= total) {
+        suggestions.add(String.valueOf(currentWeek));
+      }
+
       suggestions.add("next");
       suggestions.add("prev");
 
-      for (int i = 1; i <= 20; i++) {
-        suggestions.add(String.valueOf(i));
+      if (currentWeek >= 1 && currentWeek <= total) {
+        int firstWeek = Math.max(1, currentWeek - 3);
+        int lastWeek = Math.min(total, currentWeek + 3);
+
+        for (int i = firstWeek; i <= lastWeek; i++) {
+          if (i != currentWeek) {
+            suggestions.add(String.valueOf(i));
+          }
+        }
       }
     }
+
     case "changes" -> {
       return Collections.emptyList();
     }
@@ -350,7 +376,8 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
     if (command.getName().equalsIgnoreCase("day")) {
       if (args.length != 1) {
         sender.sendMessage(Component.text(
-            "Использование: /day <now|yyyy-MM-dd>", NamedTextColor.RED));
+            "Использование: /uni:day <today|tomorrow|yyyy-MM-dd>",
+            NamedTextColor.RED));
         return true;
       }
 
@@ -358,15 +385,15 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
       String argument = args[0].toLowerCase(Locale.ROOT);
 
       switch (argument) {
-      case "now", "today" -> date = LocalDate.now(zone);
+      case "today" -> date = LocalDate.now(zone);
       case "tomorrow" -> date = LocalDate.now(zone).plusDays(1);
       default -> {
         try {
           date = LocalDate.parse(args[0]);
         } catch (DateTimeParseException e) {
-          sender.sendMessage(
-              Component.text("Использование: /day <now|tomorrow|yyyy-MM-dd>",
-                             NamedTextColor.RED));
+          sender.sendMessage(Component.text(
+              "Использование: /uni:day <today|tomorrow|yyyy-MM-dd>",
+              NamedTextColor.RED));
           return true;
         }
       }
@@ -379,7 +406,7 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
     if (command.getName().equalsIgnoreCase("week")) {
       if (args.length != 1) {
         sender.sendMessage(
-            Component.text("Использование: /week <this|next|prev|number>",
+            Component.text("Использование: /uni:week <this|next|prev|number>",
                            NamedTextColor.RED));
         return true;
       }
@@ -475,7 +502,10 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
     LocalDate actualEnd =
         weekSunday.isAfter(semesterEnd) ? semesterEnd : weekSunday;
 
-    sender.sendMessage(Component.text("Неделя " + number + " (" +
+    String weekLabel =
+        number == weekNumber(LocalDate.now(zone)) ? " (текущая)" : "";
+
+    sender.sendMessage(Component.text("Неделя " + number + weekLabel + " (" +
                                           start.format(DATE_FORMAT) + " – " +
                                           actualEnd.format(DATE_FORMAT) + ")",
                                       NamedTextColor.GOLD));
@@ -517,11 +547,26 @@ public final class UniversitySchedulePlugin extends JavaPlugin {
     TextColor color =
         useApiColors ? parseColor(lesson.color, defaultColor) : defaultColor;
 
+    LocalDateTime now = LocalDateTime.now(zone);
+
+    Component marker;
+    if (!now.isBefore(lesson.start) && now.isBefore(lesson.end)) {
+      marker =
+          Component.text("▶ СЕЙЧАС", NamedTextColor.GREEN)
+              .decorate(net.kyori.adventure.text.format.TextDecoration.BOLD);
+    } else if (!now.isBefore(lesson.end)) {
+      marker = Component.text("✓", NamedTextColor.GRAY);
+    } else {
+      marker = Component.text("○", NamedTextColor.AQUA);
+    }
+
     Component time = Component.text(
         lesson.start.format(TIME_FORMAT) + "–" + lesson.end.format(TIME_FORMAT),
         timeBackground ? NamedTextColor.WHITE : color);
 
-    Component line = time.append(Component.space())
+    Component line = marker.append(Component.space())
+                         .append(time)
+                         .append(Component.space())
                          .append(Component.text(lesson.subject, color));
 
     if (lesson.replacement) {
