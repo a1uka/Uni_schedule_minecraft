@@ -33,6 +33,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: UniversitySchedule
-          path: build/libs/UniversitySchedule-*.jar
+          path: build/libs/Uni-*.jar
           if-no-files-found: error
           retention-days: 30
