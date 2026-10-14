@@ -52,7 +52,32 @@ import org.bukkit.scheduler.BukkitTask;
 
 public final class UniversitySchedulePlugin
     extends JavaPlugin implements Listener {
+  private enum LessonStatus { CURRENT, UPCOMING, FINISHED }
 
+  private LessonStatus getLessonStatus(Lesson lesson) {
+    ZoneId zone =
+        ZoneId.of(getConfig().getString("display.timezone", "Europe/Moscow"));
+
+    LocalDateTime now = LocalDateTime.now(zone);
+
+    if (!now.isBefore(lesson.start()) && now.isBefore(lesson.end())) {
+      return LessonStatus.CURRENT;
+    }
+
+    if (now.isBefore(lesson.start())) {
+      return LessonStatus.UPCOMING;
+    }
+
+    return LessonStatus.FINISHED;
+  }
+
+  private Component getStatusComponent(Lesson lesson) {
+    return switch (getLessonStatus(lesson)) {
+      case CURRENT -> Component.text("▶ СЕЙЧАС", NamedTextColor.GREEN);
+      case UPCOMING -> Component.text("○ СКОРО", NamedTextColor.YELLOW);
+      case FINISHED -> Component.text("✓ ЗАВЕРШЕНА", NamedTextColor.GRAY);
+    };
+  }
   @Override
   public List<String> onTabComplete(CommandSender sender, Command command,
                                     String alias, String[] args) {
@@ -150,6 +175,7 @@ public final class UniversitySchedulePlugin
     saveDefaultConfig();
     loadSettings();
     Bukkit.getPluginManager().registerEvents(this, this);
+    startMenuRefresh();
 
     getLogger().info("UniversitySchedule включается для группы " + groupId);
     refreshTask = Bukkit.getScheduler().runTaskTimerAsynchronously(
@@ -163,6 +189,9 @@ public final class UniversitySchedulePlugin
   public void onDisable() {
     if (refreshTask != null) {
       refreshTask.cancel();
+    }
+    if (menuRefreshTask != null) {
+      menuRefreshTask.cancel();
     }
     getLogger().info("UniversitySchedule выключен.");
   }
@@ -797,17 +826,22 @@ public final class UniversitySchedulePlugin
     holder.inventory = inventory;
 
     inventory.setItem(
-        4, menuItem(Material.CLOCK,
-                    Component.text(
-                        capitalize(date.getDayOfWeek().getDisplayName(
-                            TextStyle.FULL, Locale.forLanguageTag("ru"))) +
-                            ", " + date,
-                        NamedTextColor.GOLD),
-                    List.of(Component.text("Найдено пар: " +
-                                               lessonsForDate(date).size(),
-                                           NamedTextColor.YELLOW))));
+        4,
+        menuItem(
+            Material.CLOCK,
+            Component.text(capitalize(date.getDayOfWeek().getDisplayName(
+                               TextStyle.FULL, Locale.forLanguageTag("ru"))) +
+                               ", " + date,
+                           NamedTextColor.GOLD),
+            List.of(
+                Component.text("Найдено пар: " + lessonsForDate(date).size(),
+                               NamedTextColor.YELLOW),
+                Component.text("🟩 Идёт сейчас", NamedTextColor.GREEN),
+                Component.text("🟨 Скоро начнётся", NamedTextColor.YELLOW),
+                Component.text("⬜ Завершена", NamedTextColor.GRAY))));
 
     List<Lesson> dayLessons = lessonsForDate(date);
+
     int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25,
                    28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
 
@@ -817,7 +851,29 @@ public final class UniversitySchedulePlugin
       String time =
           lesson.start().toLocalTime() + "–" + lesson.end().toLocalTime();
 
+      LessonStatus status = getLessonStatus(lesson);
+
+      Material material;
+      Component statusText;
+
+      switch (status) {
+      case CURRENT -> {
+        material = Material.LIME_CONCRETE;
+        statusText = Component.text("▶ СЕЙЧАС", NamedTextColor.GREEN);
+      }
+      case UPCOMING -> {
+        material = Material.YELLOW_CONCRETE;
+        statusText = Component.text("○ СКОРО", NamedTextColor.YELLOW);
+      }
+      default -> {
+        material = Material.GRAY_CONCRETE;
+        statusText = Component.text("✓ ЗАВЕРШЕНА", NamedTextColor.GRAY);
+      }
+      }
+
       List<Component> lore = new ArrayList<>();
+
+      lore.add(statusText);
       lore.add(Component.text(time, NamedTextColor.YELLOW));
 
       if (lesson.teacher() != null && !lesson.teacher().isBlank()) {
@@ -830,7 +886,7 @@ public final class UniversitySchedulePlugin
             Component.text("Аудитория: " + lesson.room(), NamedTextColor.GRAY));
       }
 
-      inventory.setItem(slots[i], menuItem(Material.BOOK,
+      inventory.setItem(slots[i], menuItem(material,
                                            Component.text(lesson.subject(),
                                                           NamedTextColor.AQUA),
                                            lore));
@@ -916,5 +972,25 @@ public final class UniversitySchedulePlugin
     if (holder instanceof WeekHolder || holder instanceof DayHolder) {
       event.setCancelled(true);
     }
+  }
+  private BukkitTask menuRefreshTask;
+
+  private void startMenuRefresh() {
+    if (menuRefreshTask != null) {
+      menuRefreshTask.cancel();
+    }
+
+    menuRefreshTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+      for (Player player : Bukkit.getOnlinePlayers()) {
+        InventoryHolder holder =
+            player.getOpenInventory().getTopInventory().getHolder();
+
+        if (holder instanceof DayHolder dayHolder) {
+          openDayMenu(player, dayHolder.week, dayHolder.date);
+        } else if (holder instanceof WeekHolder weekHolder) {
+          openWeekMenu(player, weekHolder.week);
+        }
+      }
+    }, 20L * 30, 20L * 30);
   }
 }
