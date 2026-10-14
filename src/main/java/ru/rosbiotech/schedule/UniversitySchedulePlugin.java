@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,6 +40,39 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class UniversitySchedulePlugin extends JavaPlugin {
+
+  @Override
+  public List<String> onTabComplete(CommandSender sender, Command command,
+                                    String alias, String[] args) {
+    if (args.length != 1) {
+      return Collections.emptyList();
+    }
+
+    String input = args[0].toLowerCase(Locale.ROOT);
+    List<String> suggestions = new ArrayList<>();
+
+    switch (command.getName().toLowerCase(Locale.ROOT)) {
+    case "day" -> {
+      suggestions.add("now");
+      suggestions.add("today");
+      suggestions.add("tomorrow");
+    }
+    case "week" -> {
+      suggestions.add("this");
+      suggestions.add("next");
+      suggestions.add("prev");
+
+      for (int i = 1; i <= 20; i++) {
+        suggestions.add(String.valueOf(i));
+      }
+    }
+    case "changes" -> {
+      return Collections.emptyList();
+    }
+    }
+
+    return suggestions.stream().filter(s -> s.startsWith(input)).toList();
+  }
 
   private static final DateTimeFormatter DATE_FORMAT =
       DateTimeFormatter.ofPattern("dd.MM.yyyy");
