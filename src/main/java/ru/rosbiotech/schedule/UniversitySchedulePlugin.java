@@ -320,7 +320,8 @@ public final class UniversitySchedulePlugin
       });
 
     } catch (Exception e) {
-      getLogger().warning("Ошибка обновления расписания: " + e.getMessage());
+      getLogger().log(java.util.logging.Level.SEVERE,
+                      "Ошибка обновления расписания", e);
     } finally {
       refreshRunning = false;
     }
