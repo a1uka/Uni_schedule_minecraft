@@ -29,7 +29,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.jar {
-    archiveBaseName = 'UniversitySchedule'
+    archiveBaseName = 'Uni'
     archiveVersion = project.version
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
